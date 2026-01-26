@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  password      String // Hashed
+  role          String    @default("USER") // ADMIN, USER
+  organizations Organization[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Organization {
+  id               String          @id @default(cuid())
+  name             String
+  address          String?
+  inventoryYear    String?
+  fillingDate      String?
+  responsibleName  String?
+  responsiblePhone String?
+  // Intensity Metrics Data
+  employees        Int?      @default(0)
+  revenue          Float?    @default(0)
+  productionVolume Float?    @default(0)
+  productionUnit   String?   // e.g. "ton", "units", "m2"
+  userId           String
+  user             User            @relation(fields: [userId], references: [id])
+  entries          EmissionEntry[]
+}
+
+model EmissionEntry {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  scope          String // scope1, scope2, scope3
+  category       String // stationary, mobile, etc.
+  description    String
+
+  emissions_tCO2e Float
+  biogenic_tCO2e  Float
+
+  // JSON field to store the specific inputs (fuel type, distance, etc.)
+  data String // JSON string
+
+  date      DateTime
+  month     Int
+  year      Int
+
+  createdAt DateTime @default(now())
+}

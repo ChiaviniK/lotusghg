@@ -41,7 +41,7 @@ import {
     AIR_FUEL_TYPES
 } from "@/lib/constants/upstream-transport-data";
 
-const upstreamSchema = z.object({
+const downstreamSchema = z.object({
     description: z.string().optional(),
 
     // Road Transport Fields
@@ -80,19 +80,19 @@ const upstreamSchema = z.object({
     air_fuel_amount: z.coerce.number().optional(),
 });
 
-export function UpstreamTransportForm() {
+export function Scope3DownstreamForm() {
     const { addEntry, entries } = useEmissions();
     const [activeTab, setActiveTab] = useState("road");
 
     // Filter relevant entries
-    const upstreamEntries = entries.filter(e => e.category === "upstream_transport_dist");
+    const downstreamEntries = entries.filter(e => e.category === "downstream_transport_dist");
 
     // Calculate totals
-    const totalFossil = upstreamEntries.reduce((sum, e) => sum + (e.emissions_tCO2e || 0), 0);
-    const totalBio = upstreamEntries.reduce((sum, e) => sum + (e.biogenic_tCO2e || 0), 0);
+    const totalFossil = downstreamEntries.reduce((sum, e) => sum + (e.emissions_tCO2e || 0), 0);
+    const totalBio = downstreamEntries.reduce((sum, e) => sum + (e.biogenic_tCO2e || 0), 0);
 
-    const form = useForm<z.infer<typeof upstreamSchema>>({
-        resolver: zodResolver(upstreamSchema),
+    const form = useForm<z.infer<typeof downstreamSchema>>({
+        resolver: zodResolver(downstreamSchema),
         defaultValues: {
             road_calc_method: "fuel",
             // Initialize possibly undefined fields to undefined to match schema
@@ -114,8 +114,8 @@ export function UpstreamTransportForm() {
         return R * c;
     }
 
-    function onSubmit(data: z.infer<typeof upstreamSchema>) {
-        console.log("Submit Upstream Data", data);
+    function onSubmit(data: z.infer<typeof downstreamSchema>) {
+        console.log("Submit Downstream Data", data);
 
         let calculatedCO2 = 0; // tCO2e
         let calculatedBioCO2 = 0; // tCO2e (Biogenic)
@@ -227,12 +227,12 @@ export function UpstreamTransportForm() {
         addEntry({
             id: crypto.randomUUID(),
             scope: "scope3",
-            category: "upstream_transport_dist", // Category 4
+            category: "downstream_transport_dist", // Category 9
             description: details || data.description || methodUsed,
             emissions_tCO2e: calculatedCO2,
             biogenic_tCO2e: calculatedBioCO2,
             date: new Date().toISOString(),
-            data: data
+            data: data, // Save raw inputs for future editing/reference
         });
 
         // Optional: Show success feedback (toast/alert)
@@ -245,7 +245,7 @@ export function UpstreamTransportForm() {
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Orientações Gerais</AlertTitle>
                 <AlertDescription>
-                    Esta seção permite calcular as emissões por Transporte e Distribuição (Upstream) de serviços contratados.
+                    Esta seção permite calcular as emissões por Transporte e Distribuição (Downstream) de produtos vendidos.
                     Escolha o modal abaixo para iniciar.
                 </AlertDescription>
             </Alert>
@@ -797,7 +797,7 @@ export function UpstreamTransportForm() {
                                                         render={({ field }) => (
                                                             <FormItem>
                                                                 <FormLabel>Destino (IATA)</FormLabel>
-                                                                <FormControl><Input placeholder="Ex: JFK" {...field} /></FormControl>
+                                                                <FormControl><Input placeholder="EX: JFK" {...field} value={field.value ?? ''} /></FormControl>
                                                                 <FormMessage />
                                                             </FormItem>
                                                         )}
@@ -808,7 +808,7 @@ export function UpstreamTransportForm() {
                                                         render={({ field }) => (
                                                             <FormItem>
                                                                 <FormLabel>Carga (t)</FormLabel>
-                                                                <FormControl><Input type="number" {...field} /></FormControl>
+                                                                <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                                                 <FormMessage />
                                                             </FormItem>
                                                         )}
@@ -816,6 +816,7 @@ export function UpstreamTransportForm() {
                                                 </div>
                                             </div>
                                         )}
+
                                         {form.watch("air_calc_method") === "fuel" && (
                                             <div className="space-y-4 border p-4 rounded-md bg-muted/10">
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -830,7 +831,9 @@ export function UpstreamTransportForm() {
                                                                         <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                                                     </FormControl>
                                                                     <SelectContent>
-                                                                        {AIR_FUEL_TYPES?.map(f => <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>)}
+                                                                        {AIR_FUEL_TYPES.map(f => (
+                                                                            <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>
+                                                                        ))}
                                                                     </SelectContent>
                                                                 </Select>
                                                                 <FormMessage />
@@ -843,7 +846,7 @@ export function UpstreamTransportForm() {
                                                         render={({ field }) => (
                                                             <FormItem>
                                                                 <FormLabel>Quantidade</FormLabel>
-                                                                <FormControl><Input type="number" {...field} /></FormControl>
+                                                                <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                                                 <FormMessage />
                                                             </FormItem>
                                                         )}
@@ -855,58 +858,52 @@ export function UpstreamTransportForm() {
                                 </Card>
                             </TabsContent>
 
-                            <div className="flex justify-end">
-                                <Button type="submit" size="lg">
-                                    <Save className="mr-2 h-4 w-4" />
-                                    Salvar Dados
-                                </Button>
-                            </div>
+                            <Button type="submit" className="w-full">
+                                <Save className="mr-2 h-4 w-4" />
+                                Salvar Registro
+                            </Button>
                         </form>
                     </Form>
+
+                    {/* Summary Table */}
+                    <div className="mt-12">
+                        <h2 className="text-xl font-bold mb-4">Registros Adicionados</h2>
+                        <div className="border rounded-lg overflow-hidden">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-muted text-muted-foreground font-medium border-b">
+                                    <tr>
+                                        <th className="p-3">Descrição / Método</th>
+                                        <th className="p-3">Emisssões (tCO2e)</th>
+                                        <th className="p-3">Biogênico (tCO2)</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                    {downstreamEntries.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={3} className="p-4 text-center text-muted-foreground">Nenhum registro adicionado.</td>
+                                        </tr>
+                                    ) : (
+                                        downstreamEntries.map(e => (
+                                            <tr key={e.id} className="hover:bg-muted/5">
+                                                <td className="p-3">{e.description}</td>
+                                                <td className="p-3 font-semibold">{e.emissions_tCO2e?.toFixed(5)}</td>
+                                                <td className="p-3 text-muted-foreground">{e.biogenic_tCO2e?.toFixed(5)}</td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                                <tfoot className="bg-muted/50 font-semibold">
+                                    <tr>
+                                        <td className="p-3">Total</td>
+                                        <td className="p-3">{totalFossil.toFixed(4)}</td>
+                                        <td className="p-3">{totalBio.toFixed(4)}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </Tabs>
-
-            {/* Summary Table (Tabela 11) */}
-            <div className="mt-12 space-y-4">
-                <h3 className="text-lg font-semibold text-gray-800">Tabela 11. Emissões por Transporte e Distribuição (Upstream)</h3>
-                <div className="border rounded-md overflow-hidden">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-gray-100 text-gray-700 font-semibold border-b">
-                            <tr>
-                                <th className="px-4 py-3">Especificação da Frota / Modal</th>
-                                <th className="px-4 py-3">Emissões de CO2 fóssil (t)</th>
-                                <th className="px-4 py-3">Emissões de CO2 biogênico (t)</th>
-                                <th className="px-4 py-3">Emissões Totais (tCO2e)</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                            {upstreamEntries.length === 0 ? (
-                                <tr>
-                                    <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
-                                        Nenhum dado registrado para esta categoria.
-                                    </td>
-                                </tr>
-                            ) : (
-                                upstreamEntries.map(entry => (
-                                    <tr key={entry.id}>
-                                        <td className="px-4 py-3">{entry.description}</td>
-                                        <td className="px-4 py-3">{entry.calculatedCo2?.toFixed(4)}</td>
-                                        <td className="px-4 py-3">{entry.calculatedBioCo2?.toFixed(4) || "0.0000"}</td>
-                                        <td className="px-4 py-3 font-medium">{(entry.calculatedCo2 || 0).toFixed(4)}</td>
-                                    </tr>
-                                ))
-                            )}
-                            {/* Grand Total Row */}
-                            <tr className="bg-muted/50 font-bold">
-                                <td className="px-4 py-3 text-right">Total:</td>
-                                <td className="px-4 py-3">{totalFossil.toFixed(4)}</td>
-                                <td className="px-4 py-3">{totalBio.toFixed(4)}</td>
-                                <td className="px-4 py-3">{totalFossil.toFixed(4)}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
         </div>
     );
 }

@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Plus, Trash2 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -33,11 +33,11 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 
-import { calculateIndustrialEmissions, IndustrialProcessResult } from "@/lib/calc/industrial";
+import { calculateIndustrialEmissions } from "@/lib/calc/industrial";
 import { FUGITIVE_GASES } from "@/lib/constants/gases";
+import { useEmissions } from "@/contexts/EmissionsContext";
 
 const industrialEntrySchema = z.object({
-    id: z.string().optional(),
     sourceId: z.string().min(1, "Identificação da fonte obrigatória"),
     description: z.string().min(1, "Descrição da fonte obrigatória"),
     processDescription: z.string().min(1, "Descrição do processo obrigatória"),
@@ -48,17 +48,20 @@ const industrialEntrySchema = z.object({
     details: z.any().optional(),
 });
 
-type IndustrialEntry = z.infer<typeof industrialEntrySchema>;
+type IndustrialEntryFormValues = z.infer<typeof industrialEntrySchema>;
 
 export function IndustrialProcessesForm() {
-    const [entries, setEntries] = useState<IndustrialEntry[]>([]);
+    const { addEntry, removeEntry, entries } = useEmissions();
+
+    // Filter for this specific category
+    const industrialEntries = entries.filter(e => e.category === "industrial_processes");
 
     // Convert gases object to array and sort by name
     const gasOptions = useMemo(() => {
         return Object.values(FUGITIVE_GASES).sort((a, b) => a.name.localeCompare(b.name));
     }, []);
 
-    const form = useForm<IndustrialEntry>({
+    const form = useForm<IndustrialEntryFormValues>({
         resolver: zodResolver(industrialEntrySchema),
         defaultValues: {
             sourceId: "",
@@ -71,7 +74,7 @@ export function IndustrialProcessesForm() {
         },
     });
 
-    function onSubmit(data: IndustrialEntry) {
+    function onSubmit(data: IndustrialEntryFormValues) {
         const result = calculateIndustrialEmissions(
             data.gasId,
             data.quantity,
@@ -79,11 +82,21 @@ export function IndustrialProcessesForm() {
             data.bio_co2_removal_t || 0
         );
 
-        setEntries([...entries, {
-            ...data,
+        addEntry({
             id: crypto.randomUUID(),
-            details: result
-        }]);
+            scope: "scope1",
+            category: "industrial_processes",
+            description: `${data.sourceId} - ${data.processDescription}`,
+            emissions_tCO2e: result.emissions_tCO2e,
+            biogenic_tCO2e: (data.bio_co2_emission_t || 0) - (data.bio_co2_removal_t || 0), // Net bio? Or usually just emissions. Dashboard separates them.
+            // Let's store emission in bio field for now, removal tracking might need custom field if dashboard doesn't support net.
+            // For now, let's map bio emission to the standard bio field.
+            date: new Date().toISOString(),
+            data: {
+                ...data,
+                details: result
+            }
+        });
 
         form.reset({
             sourceId: "",
@@ -96,13 +109,9 @@ export function IndustrialProcessesForm() {
         });
     }
 
-    function removeEntry(index: number) {
-        setEntries(entries.filter((_, i) => i !== index));
-    }
-
-    const totalEmissions = entries.reduce((acc, curr) => acc + (curr.details?.emissions_tCO2e || 0), 0);
-    const totalBioEmissions = entries.reduce((acc, curr) => acc + (curr.bio_co2_emission_t || 0), 0);
-    const totalBioRemovals = entries.reduce((acc, curr) => acc + (curr.bio_co2_removal_t || 0), 0);
+    const totalEmissions = industrialEntries.reduce((acc, curr) => acc + (curr.emissions_tCO2e || 0), 0);
+    const totalBioEmissions = industrialEntries.reduce((acc, curr) => acc + (curr.data.bio_co2_emission_t || 0), 0);
+    const totalBioRemovals = industrialEntries.reduce((acc, curr) => acc + (curr.data.bio_co2_removal_t || 0), 0);
 
     return (
         <div className="space-y-8">
@@ -123,7 +132,7 @@ export function IndustrialProcessesForm() {
                                         <FormItem>
                                             <FormLabel>Identificação da Fonte</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="Ex: Forno-01" {...field} />
+                                                <Input placeholder="Ex: Forno-01" {...field} value={field.value ?? ''} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -137,7 +146,7 @@ export function IndustrialProcessesForm() {
                                         <FormItem>
                                             <FormLabel>Descrição da Fonte</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="Ex: Produção de Cimento" {...field} />
+                                                <Input placeholder="Ex: Produção de Cimento" {...field} value={field.value ?? ''} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -152,7 +161,7 @@ export function IndustrialProcessesForm() {
                                     <FormItem>
                                         <FormLabel>Descrição do Processo Industrial</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Ex: Calcinação de calcário..." {...field} />
+                                            <Input placeholder="Ex: Calcinação de calcário..." {...field} value={field.value ?? ''} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -166,7 +175,7 @@ export function IndustrialProcessesForm() {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Gás de Efeito Estufa (GEE)</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
+                                            <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger>
                                                         <SelectValue placeholder="Selecione o gás gerado" />
@@ -192,7 +201,7 @@ export function IndustrialProcessesForm() {
                                         <FormItem>
                                             <FormLabel>Emissões do Gás (t)</FormLabel>
                                             <FormControl>
-                                                <Input type="number" step="0.0001" {...field} />
+                                                <Input type="number" step="0.0001" {...field} value={field.value ?? ''} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -208,7 +217,7 @@ export function IndustrialProcessesForm() {
                                         <FormItem>
                                             <FormLabel>Emissões de CO2 Biogênico (t)</FormLabel>
                                             <FormControl>
-                                                <Input type="number" step="0.0001" {...field} />
+                                                <Input type="number" step="0.0001" {...field} value={field.value ?? ''} />
                                             </FormControl>
                                             <p className="text-xs text-muted-foreground">Opcional - Informativo</p>
                                             <FormMessage />
@@ -223,7 +232,7 @@ export function IndustrialProcessesForm() {
                                         <FormItem>
                                             <FormLabel>Remoções de CO2 Biogênico (t)</FormLabel>
                                             <FormControl>
-                                                <Input type="number" step="0.0001" {...field} />
+                                                <Input type="number" step="0.0001" {...field} value={field.value ?? ''} />
                                             </FormControl>
                                             <p className="text-xs text-muted-foreground">Opcional - Informativo</p>
                                             <FormMessage />
@@ -240,7 +249,7 @@ export function IndustrialProcessesForm() {
                 </CardContent>
             </Card>
 
-            {entries.length > 0 && (
+            {industrialEntries.length > 0 && (
                 <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <Card>
@@ -277,31 +286,31 @@ export function IndustrialProcessesForm() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {entries.map((entry, index) => (
-                                    <TableRow key={index}>
+                                {industrialEntries.map((entry) => (
+                                    <TableRow key={entry.id}>
                                         <TableCell className="font-medium">
-                                            {entry.sourceId}
-                                            <div className="text-xs text-muted-foreground">{entry.description}</div>
-                                            <div className="text-xs text-muted-foreground italic">{entry.processDescription}</div>
+                                            {entry.data.sourceId}
+                                            <div className="text-xs text-muted-foreground">{entry.data.description}</div>
+                                            <div className="text-xs text-muted-foreground italic">{entry.data.processDescription}</div>
                                         </TableCell>
                                         <TableCell>
-                                            {FUGITIVE_GASES[entry.gasId]?.name || entry.gasId}
+                                            {FUGITIVE_GASES[entry.data.gasId]?.name || entry.data.gasId}
                                         </TableCell>
-                                        <TableCell className="text-right">{entry.quantity.toFixed(4)}</TableCell>
-                                        <TableCell className="text-right">{FUGITIVE_GASES[entry.gasId]?.gwp}</TableCell>
+                                        <TableCell className="text-right">{entry.data.quantity.toFixed(4)}</TableCell>
+                                        <TableCell className="text-right">{FUGITIVE_GASES[entry.data.gasId]?.gwp}</TableCell>
                                         <TableCell className="text-right font-bold">
-                                            {entry.details?.emissions_tCO2e.toFixed(4)}
+                                            {entry.emissions_tCO2e?.toFixed(4)}
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="text-xs">
-                                                E: {entry.bio_co2_emission_t?.toFixed(2)}
+                                                E: {entry.data.bio_co2_emission_t?.toFixed(2)}
                                             </div>
                                             <div className="text-xs text-blue-600">
-                                                R: {entry.bio_co2_removal_t?.toFixed(2)}
+                                                R: {entry.data.bio_co2_removal_t?.toFixed(2)}
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <Button variant="ghost" size="icon" onClick={() => removeEntry(index)}>
+                                            <Button variant="ghost" size="icon" onClick={() => removeEntry(entry.id)}>
                                                 <Trash2 className="h-4 w-4 text-destructive text-red-500" />
                                             </Button>
                                         </TableCell>

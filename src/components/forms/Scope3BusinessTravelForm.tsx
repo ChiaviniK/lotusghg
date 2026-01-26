@@ -217,7 +217,7 @@ export function Scope3BusinessTravelForm() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Descrição da Viagem / Passageiro</FormLabel>
-                                                <FormControl><Input placeholder="Ex: Conferência SP, Equipe de Vendas..." {...field} /></FormControl>
+                                                <FormControl><Input placeholder="Ex: Conferência SP, Equipe de Vendas..." {...field} value={field.value ?? ''} /></FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -250,7 +250,7 @@ export function Scope3BusinessTravelForm() {
                                                     render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel>Origem (IATA)</FormLabel>
-                                                            <FormControl><Input placeholder="Ex: GRU" {...field} maxLength={3} /></FormControl>
+                                                            <FormControl><Input placeholder="Ex: GRU" {...field} maxLength={3} value={field.value ?? ''} /></FormControl>
                                                         </FormItem>
                                                     )}
                                                 />
@@ -260,7 +260,7 @@ export function Scope3BusinessTravelForm() {
                                                     render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel>Destino (IATA)</FormLabel>
-                                                            <FormControl><Input placeholder="Ex: JFK" {...field} maxLength={3} /></FormControl>
+                                                            <FormControl><Input placeholder="Ex: JFK" {...field} maxLength={3} value={field.value ?? ''} /></FormControl>
                                                         </FormItem>
                                                     )}
                                                 />
@@ -272,7 +272,7 @@ export function Scope3BusinessTravelForm() {
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Distância Total do Trecho (km)</FormLabel>
-                                                        <FormControl><Input type="number" {...field} /></FormControl>
+                                                        <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                                     </FormItem>
                                                 )}
                                             />
@@ -285,7 +285,7 @@ export function Scope3BusinessTravelForm() {
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Trechos (Voos)</FormLabel>
-                                                        <FormControl><Input type="number" {...field} /></FormControl>
+                                                        <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                                     </FormItem>
                                                 )}
                                             />
@@ -295,7 +295,7 @@ export function Scope3BusinessTravelForm() {
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Passageiros</FormLabel>
-                                                        <FormControl><Input type="number" {...field} /></FormControl>
+                                                        <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                                     </FormItem>
                                                 )}
                                             />
@@ -327,7 +327,7 @@ export function Scope3BusinessTravelForm() {
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Distância (km)</FormLabel>
-                                                        <FormControl><Input type="number" {...field} /></FormControl>
+                                                        <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                                     </FormItem>
                                                 )}
                                             />
@@ -337,7 +337,7 @@ export function Scope3BusinessTravelForm() {
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Trechos</FormLabel>
-                                                        <FormControl><Input type="number" {...field} /></FormControl>
+                                                        <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                                     </FormItem>
                                                 )}
                                             />
@@ -347,7 +347,7 @@ export function Scope3BusinessTravelForm() {
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Passageiros</FormLabel>
-                                                        <FormControl><Input type="number" {...field} /></FormControl>
+                                                        <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                                     </FormItem>
                                                 )}
                                             />
@@ -379,7 +379,7 @@ export function Scope3BusinessTravelForm() {
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Distância (km)</FormLabel>
-                                                        <FormControl><Input type="number" {...field} /></FormControl>
+                                                        <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                                     </FormItem>
                                                 )}
                                             />
@@ -389,7 +389,7 @@ export function Scope3BusinessTravelForm() {
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Trechos</FormLabel>
-                                                        <FormControl><Input type="number" {...field} /></FormControl>
+                                                        <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                                     </FormItem>
                                                 )}
                                             />
@@ -399,7 +399,7 @@ export function Scope3BusinessTravelForm() {
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Passageiros</FormLabel>
-                                                        <FormControl><Input type="number" {...field} /></FormControl>
+                                                        <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                                     </FormItem>
                                                 )}
                                             />
@@ -433,7 +433,7 @@ export function Scope3BusinessTravelForm() {
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Distância Total (km)</FormLabel>
-                                                        <FormControl><Input type="number" {...field} /></FormControl>
+                                                        <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                                         <FormDescription>Assume consumo médio (ex: 10km/L gasolina)</FormDescription>
                                                     </FormItem>
                                                 )}
@@ -465,7 +465,7 @@ export function Scope3BusinessTravelForm() {
                                                     render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel>Quantidade (Litros)</FormLabel>
-                                                            <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
+                                                            <FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} /></FormControl>
                                                         </FormItem>
                                                     )}
                                                 />
@@ -482,7 +482,7 @@ export function Scope3BusinessTravelForm() {
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Distância (km)</FormLabel>
-                                                        <FormControl><Input type="number" {...field} /></FormControl>
+                                                        <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                                     </FormItem>
                                                 )}
                                             />
@@ -492,7 +492,7 @@ export function Scope3BusinessTravelForm() {
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Trechos</FormLabel>
-                                                        <FormControl><Input type="number" {...field} /></FormControl>
+                                                        <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                                     </FormItem>
                                                 )}
                                             />
@@ -502,7 +502,7 @@ export function Scope3BusinessTravelForm() {
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Passageiros</FormLabel>
-                                                        <FormControl><Input type="number" {...field} /></FormControl>
+                                                        <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                                     </FormItem>
                                                 )}
                                             />

@@ -37,6 +37,7 @@ import { Label } from "@/components/ui/label";
 
 import { calculateLandUseChange, calculateLandUseOtherTools, LandUseResult } from "@/lib/calc/land-use";
 import { LAND_USE_TYPES } from "@/lib/constants/land-use";
+import { useEmissions } from "@/contexts/EmissionsContext";
 
 // Constants for Tabela 3 (Specific subset of gases)
 const LAND_USE_GASES = [
@@ -47,7 +48,6 @@ const LAND_USE_GASES = [
 
 // Schema for Table 1 (Native Calculation)
 const landUseCalcSchema = z.object({
-    id: z.string().optional(),
     type: z.literal("calc"),
     sourceId: z.string().min(1, "Identificação da fonte obrigatória"),
     description: z.string().min(1, "Descrição da fonte obrigatória"),
@@ -63,7 +63,6 @@ type LandUseCalcData = z.infer<typeof landUseCalcSchema>;
 
 // Schema for Table 3 (Other Tools)
 const landUseOtherSchema = z.object({
-    id: z.string().optional(),
     type: z.literal("other"),
     sourceId: z.string().min(1, "Identificação da fonte obrigatória"),
     description: z.string().min(1, "Descrição da fonte obrigatória"),
@@ -76,14 +75,12 @@ const landUseOtherSchema = z.object({
 
 type LandUseOtherData = z.infer<typeof landUseOtherSchema>;
 
-// Unified Data Type
-type LandUseEntry =
-    | (LandUseCalcData & { details?: LandUseResult })
-    | (LandUseOtherData & { details?: LandUseResult });
-
 export function LandUseForm() {
-    const [entries, setEntries] = useState<LandUseEntry[]>([]);
+    const { addEntry, removeEntry, entries } = useEmissions();
     const [mode, setMode] = useState<"calc" | "other">("calc");
+
+    // Filter for this specific category
+    const landUseEntries = entries.filter(e => e.category === "land_use_change");
 
     const formCalc = useForm<LandUseCalcData>({
         // @ts-ignore
@@ -123,11 +120,19 @@ export function LandUseForm() {
             data.bio_co2_removal_t
         );
 
-        setEntries([...entries, {
-            ...data,
+        addEntry({
             id: crypto.randomUUID(),
-            details: result
-        }]);
+            scope: "scope1",
+            category: "land_use_change",
+            description: `${data.sourceId} - ${data.description}`,
+            emissions_tCO2e: result.emissions_tCO2e,
+            biogenic_tCO2e: (data.bio_co2_emission_t || 0) - (data.bio_co2_removal_t || 0),
+            date: new Date().toISOString(),
+            data: {
+                ...data,
+                details: result
+            }
+        });
 
         formCalc.reset({
             type: "calc",
@@ -150,11 +155,19 @@ export function LandUseForm() {
             data.bio_co2_removal_t
         );
 
-        setEntries([...entries, {
-            ...data,
+        addEntry({
             id: crypto.randomUUID(),
-            details: result
-        }]);
+            scope: "scope1",
+            category: "land_use_change",
+            description: `${data.sourceId} - ${data.activityDescription}`,
+            emissions_tCO2e: result.emissions_tCO2e,
+            biogenic_tCO2e: (data.bio_co2_emission_t || 0) - (data.bio_co2_removal_t || 0),
+            date: new Date().toISOString(),
+            data: {
+                ...data,
+                details: result
+            }
+        });
 
         formOther.reset({
             type: "other",
@@ -168,11 +181,7 @@ export function LandUseForm() {
         });
     }
 
-    function removeEntry(index: number) {
-        setEntries(entries.filter((_, i) => i !== index));
-    }
-
-    const totalEmissions = entries.reduce((acc, curr) => acc + (curr.details?.emissions_tCO2e || 0), 0);
+    const totalEmissions = landUseEntries.reduce((acc, curr) => acc + (curr.emissions_tCO2e || 0), 0);
 
     return (
         <div className="space-y-8">
@@ -203,7 +212,7 @@ export function LandUseForm() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Identificação da Fonte</FormLabel>
-                                                <FormControl><Input {...field} /></FormControl><FormMessage />
+                                                <FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage />
                                             </FormItem>
                                         )}
                                     />
@@ -213,7 +222,7 @@ export function LandUseForm() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Descrição da Fonte</FormLabel>
-                                                <FormControl><Input {...field} /></FormControl><FormMessage />
+                                                <FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage />
                                             </FormItem>
                                         )}
                                     />
@@ -226,7 +235,7 @@ export function LandUseForm() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Uso Inicial</FormLabel>
-                                                <Select onValueChange={field.onChange} value={field.value}>
+                                                <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                                                     <FormControl><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger></FormControl>
                                                     <SelectContent>
                                                         {LAND_USE_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
@@ -242,7 +251,7 @@ export function LandUseForm() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Uso Final</FormLabel>
-                                                <Select onValueChange={field.onChange} value={field.value}>
+                                                <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                                                     <FormControl><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger></FormControl>
                                                     <SelectContent>
                                                         {LAND_USE_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
@@ -266,6 +275,7 @@ export function LandUseForm() {
                                                         type="number"
                                                         step="0.01"
                                                         {...field}
+                                                        value={field.value ?? ''}
                                                         onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
                                                     />
                                                 </FormControl>
@@ -284,6 +294,7 @@ export function LandUseForm() {
                                                         type="number"
                                                         step="0.0001"
                                                         {...field}
+                                                        value={field.value ?? ''}
                                                         onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
                                                     />
                                                 </FormControl>
@@ -306,7 +317,7 @@ export function LandUseForm() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Identificação da Fonte</FormLabel>
-                                                <FormControl><Input {...field} /></FormControl><FormMessage />
+                                                <FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage />
                                             </FormItem>
                                         )}
                                     />
@@ -316,7 +327,7 @@ export function LandUseForm() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Descrição da Fonte</FormLabel>
-                                                <FormControl><Input {...field} /></FormControl><FormMessage />
+                                                <FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage />
                                             </FormItem>
                                         )}
                                     />
@@ -327,7 +338,7 @@ export function LandUseForm() {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Descrição da Atividade</FormLabel>
-                                            <FormControl><Input {...field} /></FormControl><FormMessage />
+                                            <FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage />
                                         </FormItem>
                                     )}
                                 />
@@ -342,6 +353,7 @@ export function LandUseForm() {
                                                     <RadioGroup
                                                         onValueChange={field.onChange}
                                                         defaultValue={field.value}
+                                                        value={field.value}
                                                         className="flex flex-col space-y-1"
                                                     >
                                                         {LAND_USE_GASES.map((g) => (
@@ -371,6 +383,7 @@ export function LandUseForm() {
                                                         type="number"
                                                         step="0.0001"
                                                         {...field}
+                                                        value={field.value ?? ''}
                                                         onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
                                                     />
                                                 </FormControl>
@@ -386,7 +399,7 @@ export function LandUseForm() {
                 </CardContent>
             </Card>
 
-            {entries.length > 0 && (
+            {landUseEntries.length > 0 && (
                 <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <Card>
@@ -409,38 +422,38 @@ export function LandUseForm() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {entries.map((entry, index) => {
+                                {landUseEntries.map((entry) => {
                                     const gasName =
-                                        entry.type === 'other' && entry.gasId
-                                            ? LAND_USE_GASES.find(g => g.id === entry.gasId)?.name
+                                        entry.data.type === 'other' && entry.data.gasId
+                                            ? LAND_USE_GASES.find(g => g.id === entry.data.gasId)?.name
                                             : '';
 
                                     return (
-                                        <TableRow key={index}>
+                                        <TableRow key={entry.id}>
                                             <TableCell className="font-medium">
-                                                {entry.sourceId}
-                                                <div className="text-xs text-muted-foreground">{entry.description}</div>
+                                                {entry.data.sourceId}
+                                                <div className="text-xs text-muted-foreground">{entry.data.description}</div>
                                             </TableCell>
                                             <TableCell>
-                                                {entry.type === 'calc' ? 'Tabela 1 (MUS)' : 'Tabela 3 (Outras)'}
+                                                {entry.data.type === 'calc' ? 'Tabela 1 (MUS)' : 'Tabela 3 (Outras)'}
                                             </TableCell>
                                             <TableCell>
-                                                {entry.type === 'calc' ? (
+                                                {entry.data.type === 'calc' ? (
                                                     <div className="text-xs">
-                                                        {entry.initialUse} -&gt; {entry.finalUse} ({entry.area} ha)
+                                                        {entry.data.initialUse} -&gt; {entry.data.finalUse} ({entry.data.area} ha)
                                                     </div>
                                                 ) : (
                                                     <div className="text-xs">
-                                                        {(entry as any).activityDescription} <br />
+                                                        {(entry.data as any).activityDescription} <br />
                                                         <span className="text-muted-foreground">{gasName}</span>
                                                     </div>
                                                 )}
                                             </TableCell>
                                             <TableCell className="text-right font-bold">
-                                                {entry.details?.emissions_tCO2e.toFixed(4)}
+                                                {entry.emissions_tCO2e?.toFixed(4)}
                                             </TableCell>
                                             <TableCell>
-                                                <Button variant="ghost" size="icon" onClick={() => removeEntry(index)}>
+                                                <Button variant="ghost" size="icon" onClick={() => removeEntry(entry.id)}>
                                                     <Trash2 className="h-4 w-4 text-destructive" />
                                                 </Button>
                                             </TableCell>

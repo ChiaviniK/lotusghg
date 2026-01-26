@@ -34,10 +34,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useState } from "react"
 import { calculateFugitiveEmissions, CalculationMethod } from "@/lib/calc/fugitive"
 import { FUGITIVE_GASES } from "@/lib/constants/gases"
+import { useEmissions } from "@/contexts/EmissionsContext"
 
 // Schema
 const fugitiveEntrySchema = z.object({
-    id: z.string().optional(),
     description: z.string().min(1, "Description is required"),
     gasId: z.string().min(1, "Gas is required"),
     method: z.enum(["balance", "direct"]),
@@ -49,20 +49,20 @@ const fugitiveEntrySchema = z.object({
 
     // Direct fields
     emissionsInput: z.coerce.number().optional(),
-
-    // Result
-    calculatedEmissions: z.number().optional(),
 })
 
-type FugitiveEntry = z.infer<typeof fugitiveEntrySchema>
+type FugitiveEntryFormValues = z.infer<typeof fugitiveEntrySchema>
 
 const GAS_OPTIONS = Object.values(FUGITIVE_GASES);
 
 export function FugitiveEmissionsForm() {
-    const [entries, setEntries] = useState<FugitiveEntry[]>([])
+    const { addEntry, removeEntry, entries } = useEmissions()
     const [method, setMethod] = useState<CalculationMethod>("balance")
 
-    const form = useForm<FugitiveEntry>({
+    // Filter for this specific category
+    const fugitiveEntries = entries.filter(e => e.category === "fugitive_emissions");
+
+    const form = useForm<FugitiveEntryFormValues>({
         resolver: zodResolver(fugitiveEntrySchema),
         defaultValues: {
             description: "",
@@ -75,7 +75,7 @@ export function FugitiveEmissionsForm() {
         },
     })
 
-    function onSubmit(data: FugitiveEntry) {
+    function onSubmit(data: FugitiveEntryFormValues) {
         const result = calculateFugitiveEmissions({
             gasId: data.gasId,
             method: data.method,
@@ -85,11 +85,19 @@ export function FugitiveEmissionsForm() {
             emissions: data.emissionsInput
         });
 
-        setEntries([...entries, {
-            ...data,
+        addEntry({
             id: crypto.randomUUID(),
-            calculatedEmissions: result.emissions_tCO2e
-        }])
+            scope: "scope1",
+            category: "fugitive_emissions",
+            description: `${data.description} (${data.gasId})`,
+            emissions_tCO2e: result.emissions_tCO2e,
+            biogenic_tCO2e: 0,
+            date: new Date().toISOString(),
+            data: {
+                ...data,
+                calculatedEmissions: result.emissions_tCO2e
+            }
+        });
 
         // Reset core fields but keep method
         form.reset({
@@ -101,10 +109,6 @@ export function FugitiveEmissionsForm() {
             purchased: 0,
             emissionsInput: 0,
         })
-    }
-
-    function removeEntry(index: number) {
-        setEntries(entries.filter((_, i) => i !== index))
     }
 
     return (
@@ -128,6 +132,7 @@ export function FugitiveEmissionsForm() {
                                                 setMethod(val as CalculationMethod);
                                             }}
                                             defaultValue={field.value}
+                                            value={field.value}
                                             className="flex flex-col space-y-1 sm:flex-row sm:space-x-4 sm:space-y-0"
                                         >
                                             <FormItem className="flex items-center space-x-3 space-y-0">
@@ -161,7 +166,7 @@ export function FugitiveEmissionsForm() {
                                     <FormItem>
                                         <FormLabel>Source Description</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="e.g. AC Unit 01, Transformer A" {...field} />
+                                            <Input placeholder="e.g. AC Unit 01, Transformer A" {...field} value={field.value ?? ''} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -203,7 +208,7 @@ export function FugitiveEmissionsForm() {
                                         <FormItem>
                                             <FormLabel>Stock Start (kg)</FormLabel>
                                             <FormControl>
-                                                <Input type="number" step="0.01" {...field} />
+                                                <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -216,7 +221,7 @@ export function FugitiveEmissionsForm() {
                                         <FormItem>
                                             <FormLabel>Stock End (kg)</FormLabel>
                                             <FormControl>
-                                                <Input type="number" step="0.01" {...field} />
+                                                <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -229,7 +234,7 @@ export function FugitiveEmissionsForm() {
                                         <FormItem>
                                             <FormLabel>Purchased (kg)</FormLabel>
                                             <FormControl>
-                                                <Input type="number" step="0.01" {...field} />
+                                                <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -244,7 +249,7 @@ export function FugitiveEmissionsForm() {
                                     <FormItem>
                                         <FormLabel>Emitted Amount (kg)</FormLabel>
                                         <FormControl>
-                                            <Input type="number" step="0.01" {...field} />
+                                            <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -272,34 +277,34 @@ export function FugitiveEmissionsForm() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {entries.length === 0 ? (
+                        {fugitiveEntries.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                                     No entries added yet.
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            entries.map((entry, index) => (
-                                <TableRow key={index}>
-                                    <TableCell className="font-medium">{entry.description}</TableCell>
-                                    <TableCell>{entry.gasId}</TableCell>
-                                    <TableCell className="capitalize">{entry.method}</TableCell>
+                            fugitiveEntries.map((entry) => (
+                                <TableRow key={entry.id}>
+                                    <TableCell className="font-medium">{entry.data.description}</TableCell>
+                                    <TableCell>{entry.data.gasId}</TableCell>
+                                    <TableCell className="capitalize">{entry.data.method}</TableCell>
                                     <TableCell className="text-right font-bold">
-                                        {entry.calculatedEmissions?.toFixed(4)}
+                                        {entry.emissions_tCO2e?.toFixed(4)}
                                     </TableCell>
                                     <TableCell>
-                                        <Button variant="ghost" size="icon" onClick={() => removeEntry(index)}>
+                                        <Button variant="ghost" size="icon" onClick={() => removeEntry(entry.id)}>
                                             <Trash2 className="h-4 w-4 text-destructive text-red-500" />
                                         </Button>
                                     </TableCell>
                                 </TableRow>
                             ))
                         )}
-                        {entries.length > 0 && (
+                        {fugitiveEntries.length > 0 && (
                             <TableRow className="bg-muted/50 font-bold">
                                 <TableCell colSpan={3} className="text-right">Total:</TableCell>
                                 <TableCell className="text-right">
-                                    {entries.reduce((acc, curr) => acc + (curr.calculatedEmissions || 0), 0).toFixed(4)}
+                                    {fugitiveEntries.reduce((acc, curr) => acc + (curr.emissions_tCO2e || 0), 0).toFixed(4)}
                                 </TableCell>
                                 <TableCell></TableCell>
                             </TableRow>

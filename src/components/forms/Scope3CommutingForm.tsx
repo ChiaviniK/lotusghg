@@ -160,7 +160,7 @@ export function Scope3CommutingForm() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Descrição / Identificação do Grupo</FormLabel>
-                                                <FormControl><Input placeholder="Ex: Funcionários ADM, Equipe TI..." {...field} /></FormControl>
+                                                <FormControl><Input placeholder="Ex: Funcionários ADM, Equipe TI..." {...field} value={field.value ?? ''} /></FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -194,7 +194,7 @@ export function Scope3CommutingForm() {
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Distância (km) - Trecho</FormLabel>
-                                                        <FormControl><Input type="number" {...field} /></FormControl>
+                                                        <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                                     </FormItem>
                                                 )}
                                             />
@@ -204,7 +204,7 @@ export function Scope3CommutingForm() {
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Trechos/Dia</FormLabel>
-                                                        <FormControl><Input type="number" {...field} /></FormControl>
+                                                        <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                                         <FormDescription>Padrão: 2 (Ida e Volta)</FormDescription>
                                                     </FormItem>
                                                 )}
@@ -215,7 +215,7 @@ export function Scope3CommutingForm() {
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Passageiros</FormLabel>
-                                                        <FormControl><Input type="number" {...field} /></FormControl>
+                                                        <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                                     </FormItem>
                                                 )}
                                             />
@@ -225,7 +225,7 @@ export function Scope3CommutingForm() {
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Dias/Ano</FormLabel>
-                                                        <FormControl><Input type="number" {...field} /></FormControl>
+                                                        <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                                         <FormDescription>Padrão: 230</FormDescription>
                                                     </FormItem>
                                                 )}
@@ -261,7 +261,7 @@ export function Scope3CommutingForm() {
                                                     render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel>Distância Média/Dia (km)</FormLabel>
-                                                            <FormControl><Input type="number" {...field} /></FormControl>
+                                                            <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                                             <FormDescription>Total (Ida + Volta)</FormDescription>
                                                         </FormItem>
                                                     )}
@@ -272,7 +272,7 @@ export function Scope3CommutingForm() {
                                                     render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel>Consumo Médio (km/L)</FormLabel>
-                                                            <FormControl><Input type="number" {...field} /></FormControl>
+                                                            <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                                         </FormItem>
                                                     )}
                                                 />
@@ -287,7 +287,7 @@ export function Scope3CommutingForm() {
                                                     render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel>Consumo Médio (Litros/Dia)</FormLabel>
-                                                            <FormControl><Input type="number" step="0.1" {...field} /></FormControl>
+                                                            <FormControl><Input type="number" step="0.1" {...field} value={field.value ?? ''} /></FormControl>
                                                         </FormItem>
                                                     )}
                                                 />
@@ -317,7 +317,7 @@ export function Scope3CommutingForm() {
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>Dias Trabalhados/Ano</FormLabel>
-                                                    <FormControl><Input type="number" {...field} /></FormControl>
+                                                    <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                                     <FormDescription>Padrão: 230</FormDescription>
                                                 </FormItem>
                                             )}
@@ -333,7 +333,7 @@ export function Scope3CommutingForm() {
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Número de Colaboradores</FormLabel>
-                                                        <FormControl><Input type="number" {...field} /></FormControl>
+                                                        <FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl>
                                                     </FormItem>
                                                 )}
                                             />
@@ -343,7 +343,7 @@ export function Scope3CommutingForm() {
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Dias em Home Office / Semana</FormLabel>
-                                                        <FormControl><Input type="number" max={7} {...field} /></FormControl>
+                                                        <FormControl><Input type="number" max={7} {...field} value={field.value ?? ''} /></FormControl>
                                                     </FormItem>
                                                 )}
                                             />

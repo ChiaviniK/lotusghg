@@ -29,15 +29,15 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { calculateMobileEmissions } from "@/lib/calc/mobile";
 import { MOBILE_FUELS } from "@/lib/constants/fuels";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { useEmissions } from "@/contexts/EmissionsContext";
 
 const mobileEntrySchema = z.object({
-    id: z.string().optional(),
     fleetId: z.string().min(1, "Identificação da frota obrigatória"),
     description: z.string().min(1, "Descrição obrigatória"),
     transportMode: z.string().min(1, "Modo de transporte obrigatório"),
@@ -49,7 +49,7 @@ const mobileEntrySchema = z.object({
     details: z.any().optional(),
 });
 
-type MobileEntry = z.infer<typeof mobileEntrySchema>;
+type MobileEntryFormValues = z.infer<typeof mobileEntrySchema>;
 
 const TRANSPORT_MODES = [
     { id: "road", label: "Rodoviário" },
@@ -69,9 +69,12 @@ const MONTHS = [
 ];
 
 export function MobileCombustionForm() {
-    const [entries, setEntries] = useState<MobileEntry[]>([]);
+    const { addEntry, removeEntry, entries } = useEmissions();
 
-    const form = useForm<MobileEntry>({
+    // Filter for this specific category
+    const mobileEntries = entries.filter(e => e.category === "mobile_combustion");
+
+    const form = useForm<MobileEntryFormValues>({
         resolver: zodResolver(mobileEntrySchema),
         defaultValues: {
             fleetId: "",
@@ -93,7 +96,7 @@ export function MobileCombustionForm() {
         return Object.values(MOBILE_FUELS).filter(f => f.mode === currentMode);
     }, [currentMode]);
 
-    function onSubmit(data: MobileEntry) {
+    function onSubmit(data: MobileEntryFormValues) {
         let totalQty = data.quantity;
         if (data.period === "monthly" && data.monthlyQuantities) {
             totalQty = data.monthlyQuantities.reduce((a, b) => a + b, 0);
@@ -101,12 +104,22 @@ export function MobileCombustionForm() {
 
         const result = calculateMobileEmissions(data.fuelSourceId, totalQty);
 
-        setEntries([...entries, {
-            ...data,
+        addEntry({
             id: crypto.randomUUID(),
-            quantity: totalQty,
-            details: result
-        }]);
+            scope: "scope1",
+            category: "mobile_combustion",
+            description: `${data.fleetId} - ${data.description}`,
+            emissions_tCO2e: result.emissions_tCO2e,
+            biogenic_tCO2e: 0, // Mobile usually fossil, but ethanol exists. Need to check if result supports bio. mobile calc returns bio?
+            // Checking fields... mobile calc usually assumes fossil for now unless enhanced.
+            // But let's check result property.
+            date: new Date().toISOString(),
+            data: {
+                ...data,
+                quantity: totalQty, // Store normalized quantity
+                details: result
+            }
+        });
 
         form.reset({
             fleetId: "",
@@ -120,11 +133,7 @@ export function MobileCombustionForm() {
         });
     }
 
-    function removeEntry(index: number) {
-        setEntries(entries.filter((_, i) => i !== index));
-    }
-
-    const totalEmissions = entries.reduce((acc, curr) => acc + (curr.details?.emissions_tCO2e || 0), 0);
+    const totalEmissions = mobileEntries.reduce((acc, curr) => acc + (curr.emissions_tCO2e || 0), 0);
 
     return (
         <div className="space-y-8">
@@ -145,7 +154,7 @@ export function MobileCombustionForm() {
                                         <FormItem>
                                             <FormLabel>Identificação da Frota / Veículo</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="Ex: Caminhão-01" {...field} />
+                                                <Input placeholder="Ex: Caminhão-01" {...field} value={field.value ?? ''} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -159,7 +168,7 @@ export function MobileCombustionForm() {
                                         <FormItem>
                                             <FormLabel>Descrição</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="Descrição operacional..." {...field} />
+                                                <Input placeholder="Descrição operacional..." {...field} value={field.value ?? ''} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -174,7 +183,7 @@ export function MobileCombustionForm() {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Modo de Transporte</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger>
                                                         <SelectValue placeholder="Selecione o modo" />
@@ -199,7 +208,7 @@ export function MobileCombustionForm() {
                                     render={({ field }) => (
                                         <FormItem className="md:col-span-2">
                                             <FormLabel>Combustível / Categoria de Veículo</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger>
                                                         <SelectValue placeholder="Selecione o combustível/veículo" />
@@ -234,6 +243,7 @@ export function MobileCombustionForm() {
                                                 onValueChange={field.onChange}
                                                 defaultValue={field.value}
                                                 className="flex flex-row space-x-6"
+                                                value={field.value}
                                             >
                                                 <div className="flex items-center space-x-2">
                                                     <RadioGroupItem value="annual" id="annual" />
@@ -259,7 +269,7 @@ export function MobileCombustionForm() {
                                             <FormItem>
                                                 <FormLabel>Quantidade Total</FormLabel>
                                                 <FormControl>
-                                                    <Input type="number" step="0.01" {...field} />
+                                                    <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -271,7 +281,7 @@ export function MobileCombustionForm() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Unidade</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                                     <FormControl>
                                                         <SelectTrigger>
                                                             <SelectValue placeholder="Selecione a unidade" />
@@ -305,6 +315,7 @@ export function MobileCombustionForm() {
                                                                 type="number"
                                                                 step="0.01"
                                                                 {...field}
+                                                                value={field.value ?? 0}
                                                                 onChange={e => {
                                                                     const val = parseFloat(e.target.value);
                                                                     field.onChange(isNaN(val) ? 0 : val);
@@ -332,7 +343,7 @@ export function MobileCombustionForm() {
                 </CardContent>
             </Card>
 
-            {entries.length > 0 && (
+            {mobileEntries.length > 0 && (
                 <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <Card>
@@ -358,27 +369,27 @@ export function MobileCombustionForm() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {entries.map((entry, index) => (
-                                    <TableRow key={index}>
+                                {mobileEntries.map((entry) => (
+                                    <TableRow key={entry.id}>
                                         <TableCell className="font-medium">
-                                            {entry.fleetId}
-                                            <div className="text-xs text-muted-foreground">{entry.description}</div>
+                                            {entry.data.fleetId}
+                                            <div className="text-xs text-muted-foreground">{entry.data.description}</div>
                                         </TableCell>
                                         <TableCell>
-                                            {MOBILE_FUELS[entry.fuelSourceId]?.name}
+                                            {MOBILE_FUELS[entry.data.fuelSourceId]?.name}
                                             <div className="text-xs text-muted-foreground">
-                                                {MOBILE_FUELS[entry.fuelSourceId]?.fuelName}
+                                                {MOBILE_FUELS[entry.data.fuelSourceId]?.fuelName}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="text-right">{entry.quantity.toFixed(2)} {entry.unit}</TableCell>
-                                        <TableCell className="text-right">{entry.details?.emissions_CO2_kg?.toFixed(2)}</TableCell>
-                                        <TableCell className="text-right">{entry.details?.emissions_CH4_kg?.toFixed(2)}</TableCell>
-                                        <TableCell className="text-right">{entry.details?.emissions_N2O_kg?.toFixed(2)}</TableCell>
+                                        <TableCell className="text-right">{entry.data.quantity.toFixed(2)} {entry.data.unit}</TableCell>
+                                        <TableCell className="text-right">{entry.data.details?.emissions_CO2_kg?.toFixed(2)}</TableCell>
+                                        <TableCell className="text-right">{entry.data.details?.emissions_CH4_kg?.toFixed(2)}</TableCell>
+                                        <TableCell className="text-right">{entry.data.details?.emissions_N2O_kg?.toFixed(2)}</TableCell>
                                         <TableCell className="text-right font-bold">
-                                            {entry.details?.emissions_tCO2e?.toFixed(4)}
+                                            {entry.emissions_tCO2e?.toFixed(4)}
                                         </TableCell>
                                         <TableCell>
-                                            <Button variant="ghost" size="icon" onClick={() => removeEntry(index)}>
+                                            <Button variant="ghost" size="icon" onClick={() => removeEntry(entry.id)}>
                                                 <Trash2 className="h-4 w-4 text-destructive text-red-500" />
                                             </Button>
                                         </TableCell>

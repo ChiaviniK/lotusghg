@@ -63,8 +63,8 @@ const domesticAlt1Schema = z.object({
 
 // Domestic Alt 2 (Population)
 const domesticAlt2Schema = z.object({
-    description: z.string().min(1),
-    population: z.coerce.number().min(1),
+    description: z.string().min(1, "Descrição obrigatória"),
+    population: z.coerce.number().min(1, "População deve ser maior que 0"),
     treatment_type: z.string(),
     // Sequential
     has_sequential: z.boolean().default(false),
@@ -76,7 +76,7 @@ const domesticAlt2Schema = z.object({
 
 // Industrial
 const industrialSchema = z.object({
-    description: z.string().min(1),
+    description: z.string().min(1, "Descrição obrigatória"),
     effluent_type: z.string().optional(),
     // Treatment 1
     flow_m3_year: z.coerce.number().min(0),
@@ -106,7 +106,7 @@ export function Scope3EffluentsForm() {
         resolver: zodResolver(domesticAlt1Schema),
         defaultValues: {
             description: "", flow_m3_year: 0, organic_load: 0, load_type: "bod", nitrogen_load: 0,
-            treatment_type: "anaerobic_reactor", has_sequential: false, has_disposal: false
+            treatment_type: "anaerobic_reactor", has_sequential: false, has_disposal: false, methane_recovery: 0
         }
     });
 
@@ -122,7 +122,7 @@ export function Scope3EffluentsForm() {
         resolver: zodResolver(industrialSchema),
         defaultValues: {
             description: "", flow_m3_year: 0, organic_load: 0, load_type: "cod", nitrogen_load: 0,
-            treatment_type: "anaerobic_reactor", has_sequential: false, has_disposal: false
+            treatment_type: "anaerobic_reactor", has_sequential: false, has_disposal: false, methane_recovery: 0
         }
     });
 
@@ -295,15 +295,15 @@ export function Scope3EffluentsForm() {
                                     <Form {...formDomAlt2}>
                                         <form onSubmit={formDomAlt2.handleSubmit(onSubmitDomAlt2)} className="space-y-4 pt-4">
                                             <FormField control={formDomAlt2.control} name="description" render={({ field }) => (
-                                                <FormItem><FormLabel>Descrição</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                                <FormItem><FormLabel>Descrição</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                                             )} />
                                             <FormField control={formDomAlt2.control} name="population" render={({ field }) => (
-                                                <FormItem><FormLabel>População Atendida</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                                                <FormItem><FormLabel>População Atendida</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                                             )} />
                                             <FormField control={formDomAlt2.control} name="treatment_type" render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>Tipo de Tratamento</FormLabel>
-                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <Select onValueChange={field.onChange} value={field.value}>
                                                         <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                                         <SelectContent>
                                                             {Object.entries(EFFLUENT_MCF).map(([k, v]) => (
@@ -322,7 +322,7 @@ export function Scope3EffluentsForm() {
                                                     <FormField control={formDomAlt2.control} name="disposal_type" render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel>Tipo de Disposição Final</FormLabel>
-                                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                            <Select onValueChange={field.onChange} value={field.value}>
                                                                 <FormControl><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger></FormControl>
                                                                 <SelectContent>
                                                                     <SelectItem value="untreated_discharge">Lançamento em Rio/Mar</SelectItem>
@@ -348,22 +348,22 @@ export function Scope3EffluentsForm() {
                                         <form onSubmit={formDomAlt1.handleSubmit(onSubmitDomAlt1)} className="space-y-4 pt-4">
                                             <div className="grid grid-cols-2 gap-4">
                                                 <FormField control={formDomAlt1.control} name="description" render={({ field }) => (
-                                                    <FormItem><FormLabel>Descrição</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                                    <FormItem><FormLabel>Descrição</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                                                 )} />
                                                 <FormField control={formDomAlt1.control} name="flow_m3_year" render={({ field }) => (
-                                                    <FormItem><FormLabel>Vazão (m³/ano)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                                                    <FormItem><FormLabel>Vazão (m³/ano)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                                                 )} />
                                                 <FormField control={formDomAlt1.control} name="organic_load" render={({ field }) => (
-                                                    <FormItem><FormLabel>Carga Orgânica (mg/L)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                                                    <FormItem><FormLabel>Carga Orgânica (mg/L)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                                                 )} />
                                                 <FormField control={formDomAlt1.control} name="nitrogen_load" render={({ field }) => (
-                                                    <FormItem><FormLabel>Nitrogênio (mg/L)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                                                    <FormItem><FormLabel>Nitrogênio (mg/L)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                                                 )} />
                                             </div>
                                             <FormField control={formDomAlt1.control} name="treatment_type" render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>Tipo de Tratamento</FormLabel>
-                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <Select onValueChange={field.onChange} value={field.value}>
                                                         <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                                         <SelectContent>
                                                             {Object.entries(EFFLUENT_MCF).map(([k, v]) => (
@@ -382,7 +382,7 @@ export function Scope3EffluentsForm() {
                                                     <FormField control={formDomAlt1.control} name="disposal_type" render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel>Tipo de Disposição Final</FormLabel>
-                                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                            <Select onValueChange={field.onChange} value={field.value}>
                                                                 <FormControl><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger></FormControl>
                                                                 <SelectContent>
                                                                     <SelectItem value="untreated_discharge">Lançamento em Rio/Mar</SelectItem>
@@ -407,22 +407,22 @@ export function Scope3EffluentsForm() {
                                 <form onSubmit={formInd.handleSubmit(onSubmitInd)} className="space-y-4 pt-4">
                                     <div className="grid grid-cols-2 gap-4">
                                         <FormField control={formInd.control} name="description" render={({ field }) => (
-                                            <FormItem><FormLabel>Descrição</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                            <FormItem><FormLabel>Descrição</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                                         )} />
                                         <FormField control={formInd.control} name="flow_m3_year" render={({ field }) => (
-                                            <FormItem><FormLabel>Vazão (m³/ano)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                                            <FormItem><FormLabel>Vazão (m³/ano)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                                         )} />
                                         <FormField control={formInd.control} name="organic_load" render={({ field }) => (
-                                            <FormItem><FormLabel>Carga Orgânica (mg/L)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                                            <FormItem><FormLabel>Carga Orgânica (mg/L)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                                         )} />
                                         <FormField control={formInd.control} name="nitrogen_load" render={({ field }) => (
-                                            <FormItem><FormLabel>Nitrogênio (mg/L)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                                            <FormItem><FormLabel>Nitrogênio (mg/L)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                                         )} />
                                     </div>
                                     <FormField control={formInd.control} name="treatment_type" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Tipo de Tratamento</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <Select onValueChange={field.onChange} value={field.value}>
                                                 <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                                 <SelectContent>
                                                     {Object.entries(EFFLUENT_MCF).map(([k, v]) => (
@@ -441,7 +441,7 @@ export function Scope3EffluentsForm() {
                                             <FormField control={formInd.control} name="disposal_type" render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>Tipo de Disposição Final</FormLabel>
-                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <Select onValueChange={field.onChange} value={field.value}>
                                                         <FormControl><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger></FormControl>
                                                         <SelectContent>
                                                             <SelectItem value="untreated_discharge">Lançamento em Rio/Mar</SelectItem>

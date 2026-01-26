@@ -4,23 +4,20 @@ import './globals.css';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { EmissionsProvider } from '@/contexts/EmissionsContext';
+import { OrganizationInfoDialog } from '@/components/layout/OrganizationInfoDialog';
 
 const inter = Inter({ subsets: ['latin'] });
-
-export const metadata: Metadata = {
-  title: 'GHG Protocol SaaS',
-  description: 'Excel-fidelity GHG accounting platform',
-};
-
+// ... metadata constants ...
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="pt-BR">
       <body className={`${inter.className} min-h-screen flex bg-background`}>
         <EmissionsProvider>
+          <OrganizationInfoDialog />
           <Sidebar />
           <div className="flex-1 flex flex-col h-screen overflow-hidden">
             <Header />

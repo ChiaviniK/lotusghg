@@ -10,10 +10,12 @@ import {
   Factory,
   CloudFog,
   BookOpen,
-  Settings
+  Settings,
+  Building2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useEmissions } from '@/contexts/EmissionsContext';
 
 const navItems = [
   {
@@ -22,38 +24,39 @@ const navItems = [
     icon: LayoutDashboard,
   },
   {
-    title: 'Scope 1: Direct',
+    title: 'Escopo 1: Diretas',
     href: '/scope1',
     icon: Flame,
     children: [
-      { title: 'Stationary Combustion', href: '/scope1/stationary' },
-      { title: 'Mobile Combustion', href: '/scope1/mobile' },
-      { title: 'Fugitive Emissions', href: '/scope1/fugitive' },
-      { title: 'Industrial Processes', href: '/scope1/industrial' },
-      { title: 'Agriculture Activities', href: '/scope1/agriculture' },
-      { title: 'Land Use Change', href: '/scope1/land-use' },
-      { title: 'Solid Waste Management', href: '/scope1/waste' },
-      { title: 'Effluents (Liquid)', href: '/scope1/effluents' },
+      { title: 'Combustão Estacionária', href: '/scope1/stationary' },
+      { title: 'Combustão Móvel', href: '/scope1/mobile' },
+      { title: 'Emissões Fugitivas', href: '/scope1/fugitive' },
+      { title: 'Processos Industriais', href: '/scope1/industrial' },
+      { title: 'Atividades Agrícolas', href: '/scope1/agriculture' },
+      { title: 'Mudança de Uso da Terra', href: '/scope1/land-use' },
+      { title: 'Resíduos Sólidos', href: '/scope1/waste' },
+      { title: 'Efluentes (Líquidos)', href: '/scope1/effluents' },
     ]
   },
   {
-    title: 'Scope 2: Indirect',
+    title: 'Escopo 2: Indiretas',
     href: '/scope2',
     icon: Zap,
     children: [
-      { title: 'Electricity (Location)', href: '/scope2/location' },
-      { title: 'T&D Losses (2.2)', href: '/scope2/losses' },
-      { title: 'Thermal Energy (Market)', href: '/scope2/market' },
-      { title: 'Electricity (Market)', href: '/scope2/market-electricity' },
+      { title: 'Eletricidade (Localização)', href: '/scope2/location' },
+      { title: 'Perdas T&D (2.2)', href: '/scope2/losses' },
+      { title: 'Energia Térmica (Compra)', href: '/scope2/market' },
+      { title: 'Eletricidade (Escolha)', href: '/scope2/market-electricity' },
     ]
   },
   {
-    title: 'Scope 3: Value Chain',
+    title: 'Escopo 3: Cadeia de Valor',
     href: '/scope3',
     icon: Truck,
     children: [
-      { title: 'Inventory (General)', href: '/scope3/inventory' },
+      { title: 'Inventário (Geral)', href: '/scope3/inventory' },
       { title: 'Transp. Upstream (Cat 4)', href: '/scope3/upstream-transport' },
+      { title: 'Transp. Downstream (Cat 9)', href: '/scope3/downstream-transport' },
       { title: 'Viagens a Negócios', href: '/scope3/business-travel' },
       { title: 'Deslocamento Casa-Trabalho', href: '/scope3/commuting' },
       { title: 'Resíduos Sólidos', href: '/scope3/waste' },
@@ -61,7 +64,7 @@ const navItems = [
     ]
   },
   {
-    title: 'References',
+    title: 'Referências',
     href: '/references',
     icon: BookOpen,
   }
@@ -69,6 +72,7 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { setShowOrgSettings, organization } = useEmissions();
 
   return (
     <div className="flex h-screen w-64 flex-col border-r bg-card text-card-foreground">
@@ -113,13 +117,29 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
-      <div className="p-4 border-t">
-        <Link href="/settings">
-          <Button variant="ghost" className="w-full justify-start">
-            <Settings className="mr-2 h-4 w-4" />
-            Settings
+      <div className="p-4 border-t space-y-2">
+        <div className="px-2 py-1.5 text-xs text-muted-foreground border rounded bg-secondary/50">
+          <p className="font-semibold text-primary truncate">
+            {organization?.name || "Selecione uma Empresa"}
+          </p>
+          <p>Modo Consultor</p>
+        </div>
+
+        <Link href="/organizations">
+          <Button variant="outline" className="w-full justify-start text-xs h-8">
+            <Building2 className="mr-2 h-3 w-3" />
+            Trocar Empresa
           </Button>
         </Link>
+
+        <Button
+          variant="ghost"
+          className="w-full justify-start"
+          onClick={() => setShowOrgSettings(true)}
+        >
+          <Settings className="mr-2 h-4 w-4" />
+          Configurações da Empresa
+        </Button>
       </div>
     </div>
   );

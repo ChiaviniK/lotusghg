@@ -30,34 +30,31 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-import { useState } from "react"
-import { calculateStationaryEmissions, CalculationResult } from "@/lib/calc/stationary"
+import { calculateStationaryEmissions } from "@/lib/calc/stationary"
 import { STATIONARY_FUELS } from "@/lib/constants/fuels"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useEmissions } from "@/contexts/EmissionsContext"
 
 const combustionEntrySchema = z.object({
-    id: z.string().optional(),
     sourceId: z.string().min(1, "Source ID is required"),
     description: z.string().min(1, "Description is required"),
     fuelType: z.string().min(1, "Fuel type is required"),
     quantity: z.preprocess((val) => Number(val), z.number().min(0, "Quantity must be positive")),
     unit: z.string().min(1, "Unit is required"),
-    // Results
-    emissions_tCO2e: z.number().optional(),
-    emissions_bio_t: z.number().optional(),
 })
 
-type CombustionEntry = z.infer<typeof combustionEntrySchema> & {
-    details?: CalculationResult
-}
+type CombustionEntryFormValues = z.infer<typeof combustionEntrySchema>
 
 const FUEL_OPTIONS = Object.keys(STATIONARY_FUELS);
 const UNIT_OPTIONS = ["Litros", "m³", "kg", "Toneladas"]
 
 export function StationaryCombustionForm() {
-    const [entries, setEntries] = useState<CombustionEntry[]>([])
+    const { addEntry, removeEntry, entries } = useEmissions()
 
-    const form = useForm<CombustionEntry>({
+    // Filter for this specific category
+    const stationaryEntries = entries.filter(e => e.category === "stationary_combustion");
+
+    const form = useForm<CombustionEntryFormValues>({
         resolver: zodResolver(combustionEntrySchema),
         defaultValues: {
             sourceId: "",
@@ -68,16 +65,22 @@ export function StationaryCombustionForm() {
         },
     })
 
-    function onSubmit(data: CombustionEntry) {
+    function onSubmit(data: CombustionEntryFormValues) {
         const result = calculateStationaryEmissions(data.fuelType, data.quantity);
 
-        setEntries([...entries, {
-            ...data,
+        addEntry({
             id: crypto.randomUUID(),
+            scope: "scope1",
+            category: "stationary_combustion",
+            description: `${data.sourceId} - ${data.description}`,
             emissions_tCO2e: result.emissions_tCO2e,
-            emissions_bio_t: result.emissions_CO2_bio_t,
-            details: result
-        }])
+            biogenic_tCO2e: result.emissions_CO2_bio_t,
+            date: new Date().toISOString(),
+            data: {
+                ...data,
+                details: result
+            }
+        });
 
         form.reset({
             sourceId: "",
@@ -88,12 +91,8 @@ export function StationaryCombustionForm() {
         })
     }
 
-    function removeEntry(index: number) {
-        setEntries(entries.filter((_, i) => i !== index))
-    }
-
-    const totalFossil = entries.reduce((acc, curr) => acc + (curr.emissions_tCO2e || 0), 0);
-    const totalBio = entries.reduce((acc, curr) => acc + (curr.emissions_bio_t || 0), 0);
+    const totalFossil = stationaryEntries.reduce((acc, curr) => acc + (curr.emissions_tCO2e || 0), 0);
+    const totalBio = stationaryEntries.reduce((acc, curr) => acc + (curr.biogenic_tCO2e || 0), 0);
 
     return (
         <div className="space-y-8">
@@ -108,7 +107,7 @@ export function StationaryCombustionForm() {
                                 <FormItem>
                                     <FormLabel>Source ID</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="e.g. GEN-01" {...field} />
+                                        <Input placeholder="e.g. GEN-01" {...field} value={field.value ?? ''} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -121,7 +120,7 @@ export function StationaryCombustionForm() {
                                 <FormItem className="md:col-span-2">
                                     <FormLabel>Description</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Generator description..." {...field} />
+                                        <Input placeholder="Generator description..." {...field} value={field.value ?? ''} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -156,7 +155,7 @@ export function StationaryCombustionForm() {
                                 <FormItem>
                                     <FormLabel>Quantity</FormLabel>
                                     <FormControl>
-                                        <Input type="number" step="0.01" {...field} />
+                                        <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -208,38 +207,38 @@ export function StationaryCombustionForm() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {entries.length === 0 ? (
+                        {stationaryEntries.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                                     No entries added yet.
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            entries.map((entry, index) => (
-                                <TableRow key={index}>
+                            stationaryEntries.map((entry) => (
+                                <TableRow key={entry.id}>
                                     <TableCell className="font-medium">
-                                        {entry.sourceId}<br />
-                                        <span className="text-xs text-muted-foreground">{entry.description}</span>
+                                        {entry.data.sourceId}<br />
+                                        <span className="text-xs text-muted-foreground">{entry.data.description}</span>
                                     </TableCell>
-                                    <TableCell>{entry.fuelType}</TableCell>
-                                    <TableCell className="text-right">{entry.quantity} {entry.unit}</TableCell>
+                                    <TableCell>{entry.data.fuelType}</TableCell>
+                                    <TableCell className="text-right">{entry.data.quantity} {entry.data.unit}</TableCell>
                                     <TableCell className="text-right text-muted-foreground">
-                                        {entry.details?.emissions_CO2_fossil_t.toFixed(4)}
-                                    </TableCell>
-                                    <TableCell className="text-right text-muted-foreground">
-                                        {entry.details?.emissions_CH4_t.toFixed(5)}
+                                        {entry.data.details?.emissions_CO2_fossil_t.toFixed(4)}
                                     </TableCell>
                                     <TableCell className="text-right text-muted-foreground">
-                                        {entry.details?.emissions_N2O_t.toFixed(5)}
+                                        {entry.data.details?.emissions_CH4_t.toFixed(5)}
+                                    </TableCell>
+                                    <TableCell className="text-right text-muted-foreground">
+                                        {entry.data.details?.emissions_N2O_t.toFixed(5)}
                                     </TableCell>
                                     <TableCell className="text-right text-green-600">
-                                        {entry.details?.emissions_CO2_bio_t.toFixed(4)}
+                                        {entry.biogenic_tCO2e?.toFixed(4)}
                                     </TableCell>
                                     <TableCell className="text-right font-bold">
                                         {entry.emissions_tCO2e?.toFixed(4)}
                                     </TableCell>
                                     <TableCell>
-                                        <Button variant="ghost" size="icon" onClick={() => removeEntry(index)}>
+                                        <Button variant="ghost" size="icon" onClick={() => removeEntry(entry.id)}>
                                             <Trash2 className="h-4 w-4 text-destructive" />
                                         </Button>
                                     </TableCell>
@@ -250,7 +249,7 @@ export function StationaryCombustionForm() {
                 </Table>
             </div>
 
-            {entries.length > 0 && (
+            {stationaryEntries.length > 0 && (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
