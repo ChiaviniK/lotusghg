@@ -22,10 +22,11 @@ export async function GET() {
 
     const user = await prisma.user.findUnique({
         where: { email: session.user.email },
-        include: { organizations: true },
+        include: { organizations: true } as any,
     });
+    const userAny = user as any;
 
-    return NextResponse.json(user?.organizations || []);
+    return NextResponse.json(userAny?.organizations || []);
 }
 
 export async function POST(request: Request) {
@@ -82,7 +83,7 @@ export async function PUT(request: Request) {
                 revenue: json.revenue,
                 productionVolume: json.productionVolume,
                 productionUnit: json.productionUnit,
-            }
+            } as any
         });
 
         return NextResponse.json(updated);

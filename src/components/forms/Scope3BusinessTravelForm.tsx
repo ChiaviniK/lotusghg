@@ -37,7 +37,10 @@ import {
 const businessTravelSchema = z.object({
     description: z.string().min(1, "Descrição é obrigatória"),
 
-    // Tab tracking - manual handling in component, but good to have in schema
+    // Date field
+    date: z.string().optional(),
+
+    // active tab
     active_tab: z.string(),
 
     // AIR
@@ -87,6 +90,7 @@ export function Scope3BusinessTravelForm() {
         resolver: zodResolver(businessTravelSchema),
         defaultValues: {
             active_tab: "air",
+            date: new Date().toISOString().split('T')[0], // Default to today YYYY-MM-DD
             description: "",
             air_calc_method: "airport_iata",
             air_passengers: 1,
@@ -174,7 +178,7 @@ export function Scope3BusinessTravelForm() {
                 description: `${typeLabel} - ${data.description}`,
                 emissions_tCO2e: result.emissions_tCO2e,
                 biogenic_tCO2e: result.emissions_tCO2_bio,
-                date: new Date().toISOString(),
+                date: data.date ? new Date(data.date).toISOString() : new Date().toISOString(),
                 data: {
                     ...calculationData,
                     source_label: typeLabel
@@ -211,17 +215,32 @@ export function Scope3BusinessTravelForm() {
                         <div className="mt-6">
                             <Form {...form}>
                                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                                    <FormField
-                                        control={form.control}
-                                        name="description"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Descrição da Viagem / Passageiro</FormLabel>
-                                                <FormControl><Input placeholder="Ex: Conferência SP, Equipe de Vendas..." {...field} value={field.value ?? ''} /></FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="description"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Descrição da Viagem / Passageiro</FormLabel>
+                                                    <FormControl><Input placeholder="Ex: Conferência SP, Equipe de Vendas..." {...field} value={field.value ?? ''} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="date"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Data de Ocorrência</FormLabel>
+                                                    <FormControl>
+                                                        <Input type="date" {...field} value={field.value ?? ''} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
 
                                     {/* AIR */}
                                     <TabsContent value="air" className="space-y-4">

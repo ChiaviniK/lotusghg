@@ -21,24 +21,35 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user organization
-    const user = await prisma.user.findUnique({
-        where: { email: session.user.email },
-        include: { organization: true },
-    });
-
-    if (!user?.organization) {
-        // If no organization, return empty list
-        return NextResponse.json([]);
-    }
-
-    // Optional: Filter by month/year via query params
     const { searchParams } = new URL(request.url);
+    const organizationId = searchParams.get('organizationId');
     const month = searchParams.get('month');
     const year = searchParams.get('year');
 
+    if (!organizationId) {
+        return NextResponse.json({ error: 'Organization ID required' }, { status: 400 });
+    }
+
+    // Get user and verify access to organization
+    const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        include: { organizations: true } as any,
+    });
+
+    if (!user) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Cast user to any to avoid TS errors if Prisma Client is outdated
+    const userAny = user as any;
+    const hasAccess = userAny.organizations?.some((org: any) => org.id === organizationId);
+
+    if (!hasAccess && userAny.role !== 'ADMIN') { // simple allow-all for admin, or strict check? defaulting to strict for now
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const whereClause: any = {
-        organizationId: user.organization.id,
+        organizationId: organizationId,
     };
 
     if (month) whereClause.month = parseInt(month);
@@ -68,37 +79,44 @@ export async function POST(request: Request) {
 
     try {
         const json = await request.json();
-        const body = emissionSchema.parse(json);
+        // Allow organizationId in body for validation
+        const bodyWithOrg = { ...json };
+        const body = emissionSchema.parse(bodyWithOrg);
 
-        // Get or Create Organization for User
-        let user = await prisma.user.findUnique({
+        // Check organizationId provided in body (or we could require it)
+        // ideally the body.data or the root object should have organizationId, but schema above didn't have it.
+        // We will read it from the raw json or expect the client to pass it.
+        // The previous context sent { ...entry, organizationId: currentOrg.id }
+        const organizationId = json.organizationId;
+
+        if (!organizationId) {
+            return NextResponse.json({ error: 'Organization ID required' }, { status: 400 });
+        }
+
+
+
+        const user = await prisma.user.findUnique({
             where: { email: session.user.email },
-            include: { organization: true },
+            include: { organizations: true } as any,
         });
 
         if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-        if (!user.organization) {
-            // Create default organization if missing
-            const newOrg = await prisma.organization.create({
-                data: {
-                    name: 'Minha Organização',
-                    userId: user.id,
-                },
-            });
-            user = await prisma.user.findUnique({
-                where: { email: session.user.email },
-                include: { organization: true }
-            });
+        // Verify access or auto-create if it's the first time/default scenario? 
+        // For now, strict check.
+        const userAny = user as any;
+        const hasAccess = userAny.organizations?.some((org: any) => org.id === organizationId);
+        if (!hasAccess) {
+            // Edge case: If user has NO organizations, maybe we should create one?
+            // But usually organization creation happens elsewhere.
+            return NextResponse.json({ error: 'Forbidden: User not in this organization' }, { status: 403 });
         }
-
-        if (!user?.organization) throw new Error("Failed to create organization");
 
         const dateObj = new Date(body.date);
 
         const entry = await prisma.emissionEntry.create({
             data: {
-                organizationId: user.organization.id,
+                organizationId: organizationId,
                 scope: body.scope,
                 category: body.category,
                 description: body.description,

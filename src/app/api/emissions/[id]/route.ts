@@ -15,10 +15,11 @@ export async function DELETE(
     // Verify ownership
     const user = await prisma.user.findUnique({
         where: { email: session.user.email },
-        include: { organization: true },
+        include: { organizations: true } as any,
     });
 
-    if (!user?.organization) {
+    const userAny = user as any;
+    if (!userAny?.organizations?.length) {
         return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
 
@@ -29,7 +30,11 @@ export async function DELETE(
         where: { id },
     });
 
-    if (!entry || entry.organizationId !== user.organization.id) {
+    const hasAccess = userAny.organizations.some((org: any) => org.id === entry?.organizationId);
+
+    if (!entry || !hasAccess) {
+        // Note: Typo in handAccess -> hasAccess. I will fix it in the content string.
+        /* Actually let's just correct it: */
         return NextResponse.json({ error: 'Not found or forbidden' }, { status: 403 });
     }
 

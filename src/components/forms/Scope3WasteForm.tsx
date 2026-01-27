@@ -45,6 +45,7 @@ import {
 // Landfill Schema (Scope 3)
 const landfillSchema = z.object({
     description: z.string().min(1, "Descrição obrigatória"),
+    date: z.string().optional(),
     state: z.string().min(2, "UF obrigatória"),
     city: z.string().min(1, "Município obrigatório"),
     temp_avg: z.coerce.number(),
@@ -72,6 +73,7 @@ const landfillSchema = z.object({
 // Composting Schema
 const compostSchema = z.object({
     description: z.string().min(1),
+    date: z.string().optional(),
     amount_t: z.coerce.number().min(0),
     recovery_ch4_t: z.coerce.number().min(0).default(0),
     ch4_factor: z.coerce.number().optional(),
@@ -81,6 +83,7 @@ const compostSchema = z.object({
 // Incineration Schema
 const incinerationSchema = z.object({
     description: z.string().min(1),
+    date: z.string().optional(),
     amount_t: z.coerce.number().min(0),
     ch4_factor: z.coerce.number().optional(),
     n2o_factor: z.coerce.number().optional(),
@@ -112,19 +115,20 @@ export function Scope3WasteForm() {
         resolver: zodResolver(landfillSchema),
         defaultValues: {
             state: "", city: "", temp_avg: 20, precip_annual: 1200, amount_t: 0, mcf_type: "managed", methane_recovery_t: 0,
+            date: new Date().toISOString().split('T')[0],
             composition: { food_waste: 0, garden: 0, paper: 0, wood: 0, textile: 0, nappies: 0, sludge: 0, other: 100 }
         }
     });
 
     const formCompost = useForm<z.infer<typeof compostSchema>>({
         resolver: zodResolver(compostSchema),
-        defaultValues: { description: "", amount_t: 0, recovery_ch4_t: 0 }
+        defaultValues: { description: "", amount_t: 0, recovery_ch4_t: 0, date: new Date().toISOString().split('T')[0] }
     });
 
     const formIncineration = useForm<z.infer<typeof incinerationSchema>>({
         resolver: zodResolver(incinerationSchema),
         defaultValues: {
-            description: "", amount_t: 0,
+            description: "", amount_t: 0, date: new Date().toISOString().split('T')[0],
             composition: { paper: 0, textile: 0, wood: 0, food: 0, garden: 0, sludge: 0, plastic: 0, metal: 0, glass: 0, other: 100 }
         }
     });
@@ -147,9 +151,13 @@ export function Scope3WasteForm() {
             emissions_tCO2e: res.emissions_tCO2e,
             biogenic_tCO2e: res.biogenic_emissions_tCO2e,
             data: { ...data, type: "landfill", details: res },
-            date: new Date().toISOString()
+            date: data.date ? new Date(data.date).toISOString() : new Date().toISOString()
         });
-        formLandfill.reset();
+        formLandfill.reset({
+            ...data,
+            description: "",
+            amount_t: 0
+        });
     }
 
     function onSubmitCompost(data: z.infer<typeof compostSchema>) {
@@ -162,9 +170,13 @@ export function Scope3WasteForm() {
             emissions_tCO2e: res.emissions_tCO2e,
             biogenic_tCO2e: res.biogenic_emissions_tCO2e,
             data: { ...data, type: "compost", details: res },
-            date: new Date().toISOString()
+            date: data.date ? new Date(data.date).toISOString() : new Date().toISOString()
         });
-        formCompost.reset();
+        formCompost.reset({
+            ...data,
+            description: "",
+            amount_t: 0
+        });
     }
 
     function onSubmitIncineration(data: z.infer<typeof incinerationSchema>) {
@@ -178,9 +190,13 @@ export function Scope3WasteForm() {
             emissions_tCO2e: res.emissions_tCO2e,
             biogenic_tCO2e: res.biogenic_emissions_tCO2e,
             data: { ...data, type: "incineration", details: res },
-            date: new Date().toISOString()
+            date: data.date ? new Date(data.date).toISOString() : new Date().toISOString()
         });
-        formIncineration.reset();
+        formIncineration.reset({
+            ...data,
+            description: "",
+            amount_t: 0
+        });
     }
 
     const totalFossil = wasteEntries.reduce((acc, curr) => acc + curr.emissions_tCO2e, 0);
@@ -197,7 +213,7 @@ export function Scope3WasteForm() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Tabs value={activeTab} onValueChange={setActiveTab}>
+                    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v)} className="w-full">
                         <TabsList className="grid w-full grid-cols-3">
                             <TabsTrigger value="landfill">Aterro (Resíduos Aterrados)</TabsTrigger>
                             <TabsTrigger value="compost">Compostagem</TabsTrigger>
@@ -208,9 +224,12 @@ export function Scope3WasteForm() {
                         <TabsContent value="landfill">
                             <Form {...formLandfill}>
                                 <form onSubmit={formLandfill.handleSubmit(onSubmitLandfill)} className="space-y-6 pt-4">
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <FormField control={formLandfill.control} name="description" render={({ field }) => (
                                             <FormItem><FormLabel>Descrição / Local</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                        )} />
+                                        <FormField control={formLandfill.control} name="date" render={({ field }) => (
+                                            <FormItem><FormLabel>Data</FormLabel><FormControl><Input type="date" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                                         )} />
                                         <FormField control={formLandfill.control} name="amount_t" render={({ field }) => (
                                             <FormItem><FormLabel>Quantidade enviada ao Aterro (t/ano)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
@@ -248,7 +267,7 @@ export function Scope3WasteForm() {
 
                                     <div className="p-4 border rounded-md">
                                         <h4 className="mb-4 font-medium">Composição (%)</h4>
-                                        <div className="grid grid-cols-4 gap-4">
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                             {Object.keys(formLandfill.getValues().composition).map((key) => (
                                                 <FormField key={key} control={formLandfill.control} name={`composition.${key as any}`} render={({ field }) => (
                                                     <FormItem>
@@ -270,10 +289,15 @@ export function Scope3WasteForm() {
                         <TabsContent value="compost">
                             <Form {...formCompost}>
                                 <form onSubmit={formCompost.handleSubmit(onSubmitCompost)} className="space-y-6 pt-4">
-                                    <FormField control={formCompost.control} name="description" render={({ field }) => (
-                                        <FormItem><FormLabel>Descrição</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                                    )} />
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField control={formCompost.control} name="description" render={({ field }) => (
+                                            <FormItem><FormLabel>Descrição</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                        )} />
+                                        <FormField control={formCompost.control} name="date" render={({ field }) => (
+                                            <FormItem><FormLabel>Data</FormLabel><FormControl><Input type="date" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                                        )} />
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <FormField control={formCompost.control} name="amount_t" render={({ field }) => (
                                             <FormItem><FormLabel>Quantidade Compostada (t)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
                                         )} />
@@ -290,9 +314,12 @@ export function Scope3WasteForm() {
                         <TabsContent value="incineration">
                             <Form {...formIncineration}>
                                 <form onSubmit={formIncineration.handleSubmit(onSubmitIncineration)} className="space-y-6 pt-4">
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <FormField control={formIncineration.control} name="description" render={({ field }) => (
                                             <FormItem><FormLabel>Descrição</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                        )} />
+                                        <FormField control={formIncineration.control} name="date" render={({ field }) => (
+                                            <FormItem><FormLabel>Data</FormLabel><FormControl><Input type="date" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                                         )} />
                                         <FormField control={formIncineration.control} name="amount_t" render={({ field }) => (
                                             <FormItem><FormLabel>Quantidade Incinerada (t)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
@@ -300,7 +327,7 @@ export function Scope3WasteForm() {
                                     </div>
                                     <div className="p-4 border rounded-md">
                                         <h4 className="mb-4 font-medium">Composição (%)</h4>
-                                        <div className="grid grid-cols-5 gap-4">
+                                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                                             {Object.keys(formIncineration.getValues().composition).map((key) => (
                                                 <FormField key={key} control={formIncineration.control} name={`composition.${key as any}`} render={({ field }) => (
                                                     <FormItem>
@@ -324,7 +351,7 @@ export function Scope3WasteForm() {
                 <div className="space-y-6">
                     <h3 className="text-lg font-semibold">Tabela 4. Emissões totais de resíduos sólidos (Escopo 3)</h3>
 
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <Card>
                             <CardContent className="pt-6">
                                 <div className="text-3xl font-bold">{totalFossil.toFixed(4)}</div>
@@ -339,7 +366,7 @@ export function Scope3WasteForm() {
                         </Card>
                     </div>
 
-                    <div className="rounded-md border">
+                    <div className="rounded-md border overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow>

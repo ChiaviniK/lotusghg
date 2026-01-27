@@ -34,6 +34,7 @@ import { ROAD_FUEL_TYPES } from "@/lib/constants/upstream-transport-data";
 
 const commutingSchema = z.object({
     description: z.string().min(1, "Descrição é obrigatória"),
+    date: z.string().optional(),
 
     // PUBLIC
     public_type: z.enum(["rail_train", "rail_subway", "bus_urban", "bus_road", "ferry"]).optional(),
@@ -68,6 +69,7 @@ export function Scope3CommutingForm() {
         resolver: zodResolver(commutingSchema) as any,
         defaultValues: {
             description: "",
+            date: new Date().toISOString().split('T')[0],
             public_type: "bus_urban",
             public_passengers: undefined,
             public_trechos: undefined,
@@ -124,7 +126,7 @@ export function Scope3CommutingForm() {
                 description: `${typeLabel} - ${data.description}`,
                 emissions_tCO2e: result.emissions_tCO2e,
                 biogenic_tCO2e: result.emissions_tCO2_bio,
-                date: new Date().toISOString(),
+                date: data.date ? new Date(data.date).toISOString() : new Date().toISOString(),
                 data: { ...data, mode: activeTab }
             });
             form.reset({
@@ -154,17 +156,30 @@ export function Scope3CommutingForm() {
                         <div className="mt-6">
                             <Form {...form}>
                                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                                    <FormField
-                                        control={form.control}
-                                        name="description"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Descrição / Identificação do Grupo</FormLabel>
-                                                <FormControl><Input placeholder="Ex: Funcionários ADM, Equipe TI..." {...field} value={field.value ?? ''} /></FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="description"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Descrição / Identificação do Grupo</FormLabel>
+                                                    <FormControl><Input placeholder="Ex: Funcionários ADM, Equipe TI..." {...field} value={field.value ?? ''} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="date"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Data</FormLabel>
+                                                    <FormControl><Input type="date" {...field} value={field.value ?? ''} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
 
                                     {/* PUBLIC */}
                                     <TabsContent value="public" className="space-y-4">

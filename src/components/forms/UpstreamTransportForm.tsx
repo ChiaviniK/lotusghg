@@ -43,6 +43,7 @@ import {
 
 const upstreamSchema = z.object({
     description: z.string().optional(),
+    date: z.string().optional(),
 
     // Road Transport Fields
     road_calc_method: z.string().optional(),
@@ -94,6 +95,8 @@ export function UpstreamTransportForm() {
     const form = useForm<z.infer<typeof upstreamSchema>>({
         resolver: zodResolver(upstreamSchema),
         defaultValues: {
+            description: "",
+            date: new Date().toISOString().split('T')[0],
             road_calc_method: "fuel",
             // Initialize possibly undefined fields to undefined to match schema
             road_fuel_amount: undefined,
@@ -231,7 +234,7 @@ export function UpstreamTransportForm() {
             description: details || data.description || methodUsed,
             emissions_tCO2e: calculatedCO2,
             biogenic_tCO2e: calculatedBioCO2,
-            date: new Date().toISOString(),
+            date: data.date ? new Date(data.date).toISOString() : new Date().toISOString(),
             data: data
         });
 
@@ -273,6 +276,30 @@ export function UpstreamTransportForm() {
                 <div className="mt-8">
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="description"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Descrição / Identificação</FormLabel>
+                                            <FormControl><Input placeholder="Ex: Entrega de Matéria Prima..." {...field} value={field.value ?? ''} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="date"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Data</FormLabel>
+                                            <FormControl><Input type="date" {...field} value={field.value ?? ''} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
 
                             <TabsContent value="road">
                                 <Card>
