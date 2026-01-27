@@ -61,6 +61,10 @@ export function OrganizationInfoDialog() {
             responsibleName: "",
             responsiblePhone: "",
             fillingDate: new Date().toISOString().split("T")[0],
+            employees: 0,
+            revenue: 0,
+            productionVolume: 0,
+            productionUnit: "",
         },
     });
 
@@ -83,6 +87,10 @@ export function OrganizationInfoDialog() {
                 responsibleName: organization.responsibleName || "",
                 responsiblePhone: organization.responsiblePhone || "",
                 fillingDate: organization.fillingDate || new Date().toISOString().split("T")[0],
+                employees: organization.employees || 0,
+                revenue: organization.revenue || 0,
+                productionVolume: organization.productionVolume || 0,
+                productionUnit: organization.productionUnit || "",
             });
         }
     }, [organization, form]);
@@ -179,7 +187,7 @@ export function OrganizationInfoDialog() {
                                         <FormItem>
                                             <FormLabel>Nº Funcionários</FormLabel>
                                             <FormControl>
-                                                <Input type="number" {...field} />
+                                                <Input type="number" {...field} value={field.value ?? ''} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -192,7 +200,7 @@ export function OrganizationInfoDialog() {
                                         <FormItem>
                                             <FormLabel>Faturamento (R$)</FormLabel>
                                             <FormControl>
-                                                <Input type="number" step="0.01" {...field} />
+                                                <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -205,7 +213,7 @@ export function OrganizationInfoDialog() {
                                         <FormItem>
                                             <FormLabel>Volume Produtivo</FormLabel>
                                             <FormControl>
-                                                <Input type="number" step="0.01" {...field} />
+                                                <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -218,7 +226,7 @@ export function OrganizationInfoDialog() {
                                         <FormItem>
                                             <FormLabel>Unidade (ex: ton, peças)</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="ton" {...field} />
+                                                <Input placeholder="ton" {...field} value={field.value ?? ''} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
