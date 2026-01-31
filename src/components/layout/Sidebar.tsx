@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useEmissions } from '@/contexts/EmissionsContext';
 
-const navItems = [
+export const navItems = [
   {
     title: 'Dashboard',
     href: '/',
@@ -75,7 +75,7 @@ export function Sidebar() {
   const { setShowOrgSettings, organization } = useEmissions();
 
   return (
-    <div className="flex h-screen w-64 flex-col border-r bg-card text-card-foreground">
+    <div className="hidden md:flex h-screen w-64 flex-col border-r bg-card text-card-foreground">
       <div className="p-6">
         <h1 className="text-2xl font-bold tracking-tight text-primary">GHG SaaS</h1>
         <p className="text-xs text-muted-foreground">Excel Protocol Fidelity</p>

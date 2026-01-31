@@ -3,6 +3,7 @@
 import { useEmissions } from "@/contexts/EmissionsContext";
 import { Button } from "@/components/ui/button";
 import { Edit2 } from "lucide-react";
+import { MobileNav } from "@/components/layout/MobileNav";
 
 export function Header() {
     const { organization, setShowOrgSettings } = useEmissions();
@@ -10,6 +11,7 @@ export function Header() {
     return (
         <header className="h-16 border-b bg-background px-6 flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <MobileNav />
                 <span>
                     Organização: <strong>{organization?.name || "Não definida"}</strong>
                 </span>

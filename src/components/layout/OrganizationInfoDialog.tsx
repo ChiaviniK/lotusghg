@@ -122,12 +122,12 @@ export function OrganizationInfoDialog() {
 
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                                 control={form.control}
                                 name="name"
                                 render={({ field }) => (
-                                    <FormItem className="col-span-2">
+                                    <FormItem className="col-span-1 sm:col-span-2">
                                         <FormLabel>Nome da Organização</FormLabel>
                                         <FormControl>
                                             <Input placeholder="Ex: Minha Empresa S.A." {...field} />
@@ -140,7 +140,7 @@ export function OrganizationInfoDialog() {
                                 control={form.control}
                                 name="address"
                                 render={({ field }) => (
-                                    <FormItem className="col-span-2">
+                                    <FormItem className="col-span-1 sm:col-span-2">
                                         <FormLabel>Endereço da Organização</FormLabel>
                                         <FormControl>
                                             <Input placeholder="Rua, Número, Cidade, Estado" {...field} />
@@ -179,7 +179,7 @@ export function OrganizationInfoDialog() {
 
                         <div className="border-t pt-4 mt-4">
                             <h3 className="font-semibold mb-3 text-sm text-primary">Métricas de Intensidade (Opcional)</h3>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <FormField
                                     control={form.control}
                                     name="employees"
@@ -235,7 +235,7 @@ export function OrganizationInfoDialog() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                                 control={form.control}
                                 name="responsibleName"
