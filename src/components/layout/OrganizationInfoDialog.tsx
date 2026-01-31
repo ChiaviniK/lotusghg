@@ -112,7 +112,7 @@ export function OrganizationInfoDialog() {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px]">
+            <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Dados da Organização</DialogTitle>
                     <DialogDescription>
