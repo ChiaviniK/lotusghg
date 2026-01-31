@@ -23,6 +23,10 @@ This guide outlines the steps to deploy the application to Vercel using a Postgr
 5.  **Important**: Vercel will automatically add Environment Variables to your project (`POSTGRES_PRISMA_URL`, `POSTGRES_URL_NON_POOLING`, etc.).
     *   *Copy these variables if you want to run `prisma migrate` from your local machine, or ensure they are present in the "Environment Variables" section of the project settings.*
 
+6.  **Important (Authentication)**: You must also add an `AUTH_SECRET` environment variable for NextAuth to work in production.
+    *   Generate one by running `npx auth secret` locally (or use any long random string).
+    *   Add it to Vercel Environment Variables: `AUTH_SECRET=your_generated_secret_here`.
+
 ## Step 3: Update Codebase for Postgres
 
 *> The developer (AI) handles this step once you provide the keys.*
@@ -47,6 +51,11 @@ To apply the schema to the new production database, you need to run the migratio
     ```bash
     npx prisma migrate dev --name init_postgres
     ```
+3.  **Seed the Database**: The initial user (`admin@ghg.com`) needs to be created.
+    ```bash
+    npx prisma db seed
+    ```
+    *(Note: This runs the script in `prisma/seed.ts` against the remote database).*
 
 ### Option B: Run during Build (Advanced)
 Add a "Build Command" override in Vercel settings, but Option A is safer for controlling data.
